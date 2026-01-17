@@ -9,4 +9,5 @@ module.exports = {
       rubik: ['"Rubik Vinyl", serif'],
     },
   },
+  plugins: [],
 };
