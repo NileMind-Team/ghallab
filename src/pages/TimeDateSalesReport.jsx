@@ -759,10 +759,14 @@ const TimeDateSalesReport = () => {
       );
 
       const responseData = response.data || {};
-      const orders = responseData.data || responseData || [];
+      const orders = responseData.data || [];
       const totalItems = responseData.totalItems || 0;
       const totalPages = responseData.totalPages || 1;
       const totalPriceFromResponse = responseData.totalPrice || 0;
+
+      // الحصول على deliveryOrders و pickupOrders من الرد مباشرة
+      const deliveryOrdersFromBackend = responseData.deliveryOrders || 0;
+      const pickupOrdersFromBackend = responseData.pickupOrders || 0;
 
       setReportData(orders);
       setCurrentPage(page);
@@ -772,12 +776,10 @@ const TimeDateSalesReport = () => {
 
       const totalSales = totalPriceFromResponse;
       const totalOrders = totalItems;
-      const deliveryOrders = orders.filter(
-        (order) => order.deliveryFee?.fee > 0,
-      ).length;
-      const pickupOrders = orders.filter(
-        (order) => order.deliveryFee?.fee === 0,
-      ).length;
+
+      // استخدام البيانات من الباك-إند مباشرة
+      const deliveryOrders = deliveryOrdersFromBackend;
+      const pickupOrders = pickupOrdersFromBackend;
 
       const productSales = {};
       orders.forEach((order) => {
@@ -811,8 +813,8 @@ const TimeDateSalesReport = () => {
       const summaryData = {
         totalSales,
         totalOrders,
-        deliveryOrders,
-        pickupOrders,
+        deliveryOrders, // من الباك-إند
+        pickupOrders, // من الباك-إند
         topProducts,
         dateRange:
           startDate && endDate
@@ -1048,12 +1050,56 @@ const TimeDateSalesReport = () => {
         0,
       );
       const totalOrdersPrint = ordersToPrint.length;
-      const deliveryOrdersPrint = ordersToPrint.filter(
-        (order) => order.deliveryFee?.fee > 0,
-      ).length;
-      const pickupOrdersPrint = ordersToPrint.filter(
-        (order) => order.deliveryFee?.fee === 0,
-      ).length;
+
+      // لطباعة التقرير الكامل، سنحتاج لجلب البيانات من الباك-إند
+      let deliveryOrdersPrint = 0;
+      let pickupOrdersPrint = 0;
+
+      try {
+        const startDateTimeISO = convertToLocalISO(startDate, startTime);
+        const endDateTimeISO = convertToLocalISO(endDate, endTime);
+
+        if (startDateTimeISO && endDateTimeISO) {
+          const rangeValue = `${startDateTimeISO},${endDateTimeISO}`;
+
+          const requestBody = {
+            pageNumber: 1,
+            pageSize: totalItems,
+            filters: [
+              {
+                propertyName: "createdAt",
+                propertyValue: rangeValue,
+                range: true,
+              },
+            ],
+          };
+
+          if (selectedBranch) {
+            requestBody.filters.push({
+              propertyName: "branchId",
+              propertyValue: selectedBranch.id.toString(),
+            });
+          }
+
+          const response = await axiosInstance.post(
+            "/api/Orders/GetAllWithPagination",
+            requestBody,
+          );
+
+          const responseData = response.data || {};
+          deliveryOrdersPrint = responseData.deliveryOrders || 0;
+          pickupOrdersPrint = responseData.pickupOrders || 0;
+        }
+      } catch (error) {
+        console.error("Error fetching summary for print:", error);
+        // استخدم الحساب القديم كبديل في حالة الخطأ
+        deliveryOrdersPrint = ordersToPrint.filter(
+          (order) => order.deliveryFee?.fee > 0,
+        ).length;
+        pickupOrdersPrint = ordersToPrint.filter(
+          (order) => order.deliveryFee?.fee === 0,
+        ).length;
+      }
 
       const productSalesPrint = {};
       ordersToPrint.forEach((order) => {
