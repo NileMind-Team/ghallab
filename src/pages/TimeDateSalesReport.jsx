@@ -283,7 +283,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
 
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <FaUser className="text-[#F06742]" />
@@ -352,6 +352,46 @@ const OrderDetailsModal = ({ order, onClose }) => {
                     {order.deliveryCost?.toFixed(2) || "0.00"} ج.م
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <FaBuilding className="text-[#F06742]" />
+                <h3 className="font-bold text-gray-800 dark:text-white">
+                  معلومات الفرع
+                </h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    اسم الفرع:
+                  </span>
+                  <span className="font-medium text-gray-800 dark:text-white">
+                    {order.branch?.name || "غير محدد"}
+                  </span>
+                </div>
+                {order.branch?.address && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      عنوان الفرع:
+                    </span>
+                    <span className="font-medium text-gray-800 dark:text-white">
+                      {order.branch.address}
+                    </span>
+                  </div>
+                )}
+                {order.branch?.phoneNumbers &&
+                  order.branch.phoneNumbers.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        هاتف الفرع:
+                      </span>
+                      <span className="font-medium text-gray-800 dark:text-white">
+                        {order.branch.phoneNumbers[0]}
+                      </span>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -994,6 +1034,13 @@ const TimeDateSalesReport = () => {
     return "لا يوجد";
   };
 
+  const getBranchName = (order) => {
+    if (order.branch?.name) {
+      return order.branch.name;
+    }
+    return "غير محدد";
+  };
+
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
       return "0.00 ج.م";
@@ -1354,10 +1401,11 @@ ${
   <table class="print-table">
     <thead>
       <tr>
-        <th width="15%">رقم الطلب</th>
-        <th width="20%">العميل</th>
-        <th width="20%">الهاتف</th>
-        <th width="20%">نوع الطلب</th>
+        <th width="12%">رقم الطلب</th>
+        <th width="18%">العميل</th>
+        <th width="18%">الهاتف</th>
+        <th width="15%">الفرع</th>
+        <th width="15%">نوع الطلب</th>
         <th width="15%">المدينة</th>
         <th width="20%">المبلغ النهائي</th>
       </tr>
@@ -1376,6 +1424,7 @@ ${
             : order.user?.phoneNumber || "غير متوفر";
 
           const cityName = order.location?.city?.name || "لا يوجد";
+          const branchName = order.branch?.name || "غير محدد";
 
           const orderTypeClass = `order-type-${
             order.deliveryFee?.fee > 0 ? "delivery" : "pickup"
@@ -1387,12 +1436,14 @@ ${
             ? phoneNumber.replace(/\d/g, (d) => toArabicNumbers(d))
             : "غير متوفر";
           const cityArabic = cityName;
+          const branchArabic = branchName;
 
           return `
           <tr>
             <td class="customer-name">${orderNumberArabic}</td>
             <td>${userName}</td>
             <td>${phoneArabic}</td>
+            <td>${branchArabic}</td>
             <td class="${orderTypeClass}">${
               order.deliveryFee?.fee > 0 ? "توصيل" : "استلام"
             }</td>
@@ -1405,7 +1456,7 @@ ${
         })
         .join("")}
       <tr style="background-color: #f0f0f0 !important; font-weight: bold;">
-        <td colspan="5" style="text-align: left; padding-right: 20px;">المجموع الكلي:</td>
+        <td colspan="6" style="text-align: left; padding-right: 20px;">المجموع الكلي:</td>
         <td class="total-amount" style="text-align: center;">${formatCurrencyArabic(
           printSummary.totalSales || 0,
         )}</td>
@@ -1975,6 +2026,9 @@ ${
                           رقم الهاتف
                         </th>
                         <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
+                          الفرع
+                        </th>
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
                           نوع الطلب
                         </th>
                         <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">
@@ -2002,6 +2056,9 @@ ${
                           </td>
                           <td className="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
                             {getCustomerPhone(order)}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
+                            {getBranchName(order)}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span
@@ -2053,7 +2110,7 @@ ${
                     <tfoot className="bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="6"
                           className="px-4 py-3 text-center font-bold text-gray-800 dark:text-white"
                         >
                           المجموع الكلي:
